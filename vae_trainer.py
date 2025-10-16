@@ -92,21 +92,21 @@ def gan_disc_loss(real_preds, fake_preds, disc_type="bce"):
 
 MAX_WIDTH = 512
 
-this_transform = transforms.Compose(
+eval_transforms = transforms.Compose(
     [
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        transforms.CenterCrop(512),
-        transforms.Resize(MAX_WIDTH),
+        transforms.Resize(256),
+        transforms.CenterCrop(256),
     ]
 )
 
-imagenet_transforms = transforms.Compose(
+train_transforms = transforms.Compose(
     [
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        transforms.Resize(512),
-        transforms.RandomCrop(512),
+        transforms.Resize(256),
+        transforms.RandomCrop(256),
     ]
 )
 
@@ -125,7 +125,7 @@ def this_transform_random_crop_resize(x, width=MAX_WIDTH):
     return x
 
 
-def create_dataloader(url, batch_size, num_workers, do_shuffle=True):
+def create_dataloader(url, batch_size, num_workers, transforms, do_shuffle=True):
     dataset = wds.WebDataset(
         url, nodesplitter=wds.split_by_node, workersplitter=wds.split_by_worker
     )
@@ -133,8 +133,8 @@ def create_dataloader(url, batch_size, num_workers, do_shuffle=True):
 
     dataset = (
         dataset.decode("rgb")
-        .to_tuple("jpg;png")
-        .map_tuple(imagenet_transforms)
+        .to_tuple("jpg;jpeg;png")
+        .map_tuple(transforms)
     )
 
     loader = wds.WebLoader(
@@ -483,12 +483,8 @@ def train_ddp(
 
     lpips = LPIPS().cuda()
 
-    dataloader = create_dataloader(
-        dataset_url, batch_size, num_workers=4, do_shuffle=True
-    )
-    test_dataloader = create_dataloader(
-        test_dataset_url, batch_size, num_workers=4, do_shuffle=False
-    )
+    dataloader = create_dataloader(dataset_url, batch_size, 1, train_transforms, do_shuffle=True)
+    test_dataloader = create_dataloader(test_dataset_url, batch_size, 1, eval_transforms, do_shuffle=False)
 
     num_training_steps = max_steps
     num_warmup_steps = 200
