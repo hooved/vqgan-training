@@ -101,6 +101,15 @@ this_transform = transforms.Compose(
     ]
 )
 
+imagenet_transforms = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        transforms.Resize(512),
+        transforms.RandomCrop(512),
+    ]
+)
+
 
 def this_transform_random_crop_resize(x, width=MAX_WIDTH):
 
@@ -116,7 +125,7 @@ def this_transform_random_crop_resize(x, width=MAX_WIDTH):
     return x
 
 
-def create_dataloader(url, batch_size, num_workers, do_shuffle=True, just_resize=False):
+def create_dataloader(url, batch_size, num_workers, do_shuffle=True):
     dataset = wds.WebDataset(
         url, nodesplitter=wds.split_by_node, workersplitter=wds.split_by_worker
     )
@@ -125,9 +134,7 @@ def create_dataloader(url, batch_size, num_workers, do_shuffle=True, just_resize
     dataset = (
         dataset.decode("rgb")
         .to_tuple("jpg;png")
-        .map_tuple(
-            this_transform_random_crop_resize if not just_resize else this_transform
-        )
+        .map_tuple(imagenet_transforms)
     )
 
     loader = wds.WebLoader(
@@ -383,8 +390,8 @@ def train_ddp(
     start_test = end_train + 1
     end_test = start_test + 8
 
-    dataset_url = f"/home/ubuntu/ultimate_pipe/flux_ipadapter_trainer/dataset/art_webdataset/{{{start_train:05d}..{end_train:05d}}}.tar"
-    test_dataset_url = f"/home/ubuntu/ultimate_pipe/flux_ipadapter_trainer/dataset/art_webdataset/{{{start_test:05d}..{end_test:05d}}}.tar"
+    #dataset_url = f"/home/ubuntu/ultimate_pipe/flux_ipadapter_trainer/dataset/art_webdataset/{{{start_train:05d}..{end_train:05d}}}.tar"
+    #test_dataset_url = f"/home/ubuntu/ultimate_pipe/flux_ipadapter_trainer/dataset/art_webdataset/{{{start_test:05d}..{end_test:05d}}}.tar"
 
     assert torch.cuda.is_available(), "CUDA is required for DDP"
 
@@ -400,7 +407,7 @@ def train_ddp(
     if master_process:
         wandb.init(
             project=project_name,
-            entity="simo",
+            #entity="simo",
             name=run_name,
             config={
                 "learning_rate_vae": learning_rate_vae,
@@ -480,7 +487,7 @@ def train_ddp(
         dataset_url, batch_size, num_workers=4, do_shuffle=True
     )
     test_dataloader = create_dataloader(
-        test_dataset_url, batch_size, num_workers=4, do_shuffle=False, just_resize=True
+        test_dataset_url, batch_size, num_workers=4, do_shuffle=False
     )
 
     num_training_steps = max_steps
