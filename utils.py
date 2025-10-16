@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-import torch
+import torch, os
 import torch.nn as nn
 from torchvision import models
 
@@ -27,7 +27,8 @@ class LPIPS(nn.Module):
         except:
             print("Failed to load vgg.pth, downloading...")
             os.system(
-                "wget https://heibox.uni-heidelberg.de/seafhttp/files/9535cbee-6558-4c0c-8743-78f5e56ea75e/vgg.pth"
+                #"wget https://heibox.uni-heidelberg.de/seafhttp/files/9535cbee-6558-4c0c-8743-78f5e56ea75e/vgg.pth"
+                "wget https://github.com/richzhang/PerceptualSimilarity/raw/refs/heads/master/lpips/weights/v0.1/vgg.pth"
             )
             data = torch.load("vgg.pth", map_location=torch.device("cpu"))
 
